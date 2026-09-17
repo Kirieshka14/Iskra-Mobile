@@ -9,35 +9,32 @@
 ## Возможности клиента
 
 * 📱 **Полноэкранный режим (Full Immersion)**: Никаких адресных строк Safari/Chrome, скрывающихся панелей и прыгающего интерфейса.
-* ⚡ **Нативная интеграция**: Нативная шторка статуса, клавиатура с плавным смещением контента, вибрация (Haptics) при отправке и генерации реплик.
+* ⚡ **Нативная интеграция**: Тёмная системная шторка статуса, клавиатура с плавным смещением контента, тактильная отдача (Haptics) при отправке сообщений.
 * 🔒 **Синхронизация баланса и памяти**: Единый лимит сообщений и история диалогов, синхронизированные в реальном времени с веб-версией через Supabase.
 * 🛡 **Безопасное сетевое рукопожатие**: Защита через заголовок `X-Iskra-Client-Key` с серверным рубильником (Kill Switch).
 
 ---
 
-## Быстрый старт (Сборка Android APK)
+## Быстрый старт
 
-### 1. Требования
-* Node.js 18+ и npm
-* Android Studio (с установленным Android SDK Platform 34+)
-
-### 2. Установка зависимостей
+### 1. Установка зависимостей
 ```bash
 npm install
 ```
 
-### 3. Настройка конфигурации мода (`iskra.config.json`)
-Откройте файл `iskra.config.json` и укажите ваш ключ разработчика, полученный на странице [https://iskraai.run.place/api-keys](https://iskraai.run.place/api-keys):
+### 2. Настройка конфигурации (`iskra.config.json`)
+Откройте файл `iskra.config.json` и укажите ваш ключ разработчика, полученный на странице [https://iskraai.pages.dev/api-keys](https://iskraai.pages.dev/api-keys):
 
 ```json
 {
   "clientName": "Iskra Mobile Client",
+  "clientVersion": "0.7.1",
   "apiUrl": "https://bacand-iskra.onrender.com",
   "clientKey": "iskra_app_live_YOUR_KEY_HERE"
 }
 ```
 
-### 4. Сборка APK
+### 3. Сборка Android APK
 ```bash
 # Синхронизация ассетов с нативным проектом Android
 npm run cap:sync
@@ -45,11 +42,22 @@ npm run cap:sync
 # Открытие проекта в Android Studio
 npm run cap:open:android
 
-# Или прямая сборка debug APK через терминал:
+# Или прямая сборка debug APK через Gradle:
 npm run build:apk
 ```
 Готовый установочный файл появится в папке:
 `android/app/build/outputs/apk/debug/app-debug.apk`
+
+### 4. Сборка iOS (Xcode & IPA)
+*Требуется macOS с установленным Xcode 15+*
+```bash
+# Синхронизация ассетов с проектом iOS
+npm run cap:sync
+
+# Открытие проекта в Xcode
+npm run cap:open:ios
+```
+В Xcode выберите устройство или симулятор, настройте подпись (Signing & Capabilities) и нажмите **Run** (`Cmd+R`) или создайте архив (**Product -> Archive**) для экспорта `.ipa`.
 
 ---
 
