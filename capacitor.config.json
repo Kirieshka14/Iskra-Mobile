@@ -4,6 +4,8 @@
   "webDir": "out",
   "server": {
     "androidScheme": "https",
+    "iosScheme": "https",
+    "url": "https://iskraai.pages.dev",
     "cleartext": false
   },
   "android": {
