@@ -1,0 +1,19 @@
+node_modules/
+out/
+dist/
+.DS_Store
+*.log
+
+# Android build outputs
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+
+# iOS build outputs
+ios/App/Pods/
+ios/App/Podfile.lock
+ios/App/build/
+ios/App/build-output/
+*.ipa
+*.apk

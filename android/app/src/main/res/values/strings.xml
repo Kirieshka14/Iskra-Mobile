@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Iskra</string>
+    <string name="title_activity_main">Iskra</string>
+    <string name="package_name">place.run.iskraai.mobile</string>
+    <string name="custom_url_scheme">place.run.iskraai.mobile</string>
+</resources>
