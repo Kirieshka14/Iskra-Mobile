@@ -43,13 +43,13 @@ jobs:
           ./gradlew assembleDebug --stacktrace
           APK_PATH=$(find app/build/outputs/apk -name "*.apk" -type f | head -n 1)
           echo "Found APK at: $APK_PATH"
-          cp "$APK_PATH" "$GITHUB_WORKSPACE/Iskra-Android-v0.7.1.apk"
+          cp "$APK_PATH" "$GITHUB_WORKSPACE/Iskra-Android-v0.7.2.apk"
 
       - name: Upload Android Artifact
         uses: actions/upload-artifact@v4
         with:
           name: mobile-android
-          path: Iskra-Android-v0.7.1.apk
+          path: Iskra-Android-v0.7.2.apk
           if-no-files-found: error
 
   build-ios:
@@ -92,13 +92,13 @@ jobs:
           echo "Found app at: $APP_PATH"
           cp -r "$APP_PATH" build-output/Payload/
           cd build-output
-          zip -r "$GITHUB_WORKSPACE/Iskra-iOS-v0.7.1.ipa" Payload/
+          zip -r "$GITHUB_WORKSPACE/Iskra-iOS-v0.7.2.ipa" Payload/
 
       - name: Upload iOS Artifact
         uses: actions/upload-artifact@v4
         with:
           name: mobile-ios
-          path: Iskra-iOS-v0.7.1.ipa
+          path: Iskra-iOS-v0.7.2.ipa
           if-no-files-found: warn
 
   publish-release:
