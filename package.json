@@ -1,6 +1,6 @@
 {
   "name": "iskra-mobile",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "description": "Iskra Official & Community Mobile Client Starter Kit (Capacitor 6, Android APK, iOS IPA)",
   "license": "GPL-3.0-or-later",
   "private": false,
