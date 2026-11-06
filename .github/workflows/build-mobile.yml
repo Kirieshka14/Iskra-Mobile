@@ -1,4 +1,4 @@
-name: Build Mobile Clients (Kotlin Multiplatform)
+name: Build Mobile Clients
 
 on:
   push:
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   build-android:
-    name: Build Android APK (KMP)
+    name: Build Android APK
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Iskra-Mobile
@@ -41,7 +41,7 @@ jobs:
           if-no-files-found: error
 
   build-ios:
-    name: Build iOS Framework (KMP)
+    name: Build iOS Framework
     runs-on: macos-14
     steps:
       - name: Checkout Iskra-Mobile
@@ -67,6 +67,7 @@ jobs:
     steps:
       - name: Download all build artifacts
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           path: release-assets
           merge-multiple: true
@@ -74,6 +75,8 @@ jobs:
       - name: Attach Assets to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
           fail_on_unmatched_files: false
           files: |
             release-assets/*.apk
