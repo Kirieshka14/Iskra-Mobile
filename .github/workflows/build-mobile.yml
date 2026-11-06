@@ -33,12 +33,16 @@ jobs:
           APK_PATH=$(find composeApp/build/outputs/apk -name "*.apk" -type f | head -n 1)
           cp "$APK_PATH" "$GITHUB_WORKSPACE/Iskra-Android-v0.8.0.apk"
 
-      - name: Upload Android Artifact
-        uses: actions/upload-artifact@v4
+      - name: Publish Android Release Asset
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
         with:
-          name: mobile-android
-          path: Iskra-Android-v0.8.0.apk
-          if-no-files-found: error
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          fail_on_unmatched_files: false
+          files: Iskra-Android-v0.8.0.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-ios:
     name: Build iOS Framework
@@ -58,28 +62,15 @@ jobs:
         run: |
           chmod +x ./gradlew
           ./gradlew :composeApp:linkReleaseFrameworkIosArm64 --no-daemon
+          zip -r Iskra-iOS-Framework-v0.8.0.zip composeApp/build/bin/iosArm64/releaseFramework
 
-  publish-release:
-    name: Publish Mobile Release Assets
-    needs: [build-android, build-ios]
-    runs-on: ubuntu-latest
-    if: always() && startsWith(github.ref, 'refs/tags/') && !cancelled() && (needs.build-android.result == 'success' || needs.build-ios.result == 'success')
-    steps:
-      - name: Download all build artifacts
-        uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          path: release-assets
-          merge-multiple: true
-
-      - name: Attach Assets to GitHub Release
+      - name: Publish iOS Release Asset
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           fail_on_unmatched_files: false
-          files: |
-            release-assets/*.apk
-            release-assets/*.ipa
+          files: Iskra-iOS-Framework-v0.8.0.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
