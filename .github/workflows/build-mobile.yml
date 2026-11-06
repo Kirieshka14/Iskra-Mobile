@@ -31,13 +31,13 @@ jobs:
           chmod +x ./gradlew
           ./gradlew :composeApp:assembleDebug --no-daemon
           APK_PATH=$(find composeApp/build/outputs/apk -name "*.apk" -type f | head -n 1)
-          cp "$APK_PATH" "$GITHUB_WORKSPACE/Iskra-Android-v1.0.0.apk"
+          cp "$APK_PATH" "$GITHUB_WORKSPACE/Iskra-Android-v0.8.0.apk"
 
       - name: Upload Android Artifact
         uses: actions/upload-artifact@v4
         with:
           name: mobile-android
-          path: Iskra-Android-v1.0.0.apk
+          path: Iskra-Android-v0.8.0.apk
           if-no-files-found: error
 
   build-ios:
