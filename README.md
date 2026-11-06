@@ -1,68 +1,15 @@
-# Iskra Mobile (Android APK & iOS IPA)
+# Iskra-Mobile
 
-Официальный открытый мобильный клиент платформы интерактивного сторителлинга **Iskra**, созданный на базе **Capacitor 6** под свободной лицензией **GNU GPLv3**.
+Нативный мобильный клиент IskraAi (Kotlin Multiplatform: Android, iOS).
 
-Этот репозиторий предназначен как для сборки официального приложения Iskra, так и для создания пользовательских мобильных модов сообщества.
+## Сборка Android
 
----
-
-## Возможности клиента
-
-* 📱 **Полноэкранный режим (Full Immersion)**: Никаких адресных строк Safari/Chrome, скрывающихся панелей и прыгающего интерфейса.
-* ⚡ **Нативная интеграция**: Тёмная системная шторка статуса, клавиатура с плавным смещением контента, тактильная отдача (Haptics) при отправке сообщений.
-* 🔒 **Синхронизация баланса и памяти**: Единый лимит сообщений и история диалогов, синхронизированные в реальном времени с веб-версией через Supabase.
-* 🛡 **Безопасное сетевое рукопожатие**: Защита через заголовок `X-Iskra-Client-Key` с серверным рубильником (Kill Switch).
-
----
-
-## Быстрый старт
-
-### 1. Установка зависимостей
 ```bash
-npm install
+./gradlew :composeApp:assembleDebug
 ```
 
-### 2. Настройка конфигурации (`iskra.config.json`)
-Откройте файл `iskra.config.json` и укажите ваш ключ разработчика, полученный на странице [https://iskraai.pages.dev/api-keys](https://iskraai.pages.dev/api-keys):
+## Сборка iOS
 
-```json
-{
-  "clientName": "Iskra Mobile Client",
-  "clientVersion": "0.7.1",
-  "apiUrl": "https://bacand-iskra.onrender.com",
-  "clientKey": "iskra_app_live_YOUR_KEY_HERE"
-}
-```
-
-### 3. Сборка Android APK
 ```bash
-# Синхронизация ассетов с нативным проектом Android
-npm run cap:sync
-
-# Открытие проекта в Android Studio
-npm run cap:open:android
-
-# Или прямая сборка debug APK через Gradle:
-npm run build:apk
+./gradlew :composeApp:linkReleaseFrameworkIosArm64
 ```
-Готовый установочный файл появится в папке:
-`android/app/build/outputs/apk/debug/app-debug.apk`
-
-### 4. Сборка iOS (Xcode & IPA)
-*Требуется macOS с установленным Xcode 15+*
-```bash
-# Синхронизация ассетов с проектом iOS
-npm run cap:sync
-
-# Открытие проекта в Xcode
-npm run cap:open:ios
-```
-В Xcode выберите устройство или симулятор, настройте подпись (Signing & Capabilities) и нажмите **Run** (`Cmd+R`) или создайте архив (**Product -> Archive**) для экспорта `.ipa`.
-
----
-
-## Лицензия
-
-Исходный код распространяется под лицензией **GNU General Public License v3 (GPL-3.0)**.  
-Все созданные на его основе моды и клиенты обязаны сохранять открытый исходный код под той же лицензией.  
-*Торговая марка, оригинальный логотип и бренд «Iskra» защищены авторским правом.*
