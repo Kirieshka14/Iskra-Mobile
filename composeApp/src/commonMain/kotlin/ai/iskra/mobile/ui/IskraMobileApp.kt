@@ -15,11 +15,14 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,11 +30,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -44,6 +49,84 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+private data class MobileTierStyle(val bg: Color, val fg: Color, val border: Color, val label: String)
+
+@Composable
+fun UserTierBadge(tier: String) {
+    val t = tier.lowercase()
+    val style = when (t) {
+        "max", "ultra", "admin" -> MobileTierStyle(Color(0x33A855F7), Color(0xFFC084FC), Color(0x66A855F7), "MAX")
+        "pro", "plus", "vip" -> MobileTierStyle(Color(0x26F59E0B), Color(0xFFF59E0B), Color(0x4DF59E0B), "PRO")
+        else -> MobileTierStyle(Color(0x2678716C), Color(0xFFA8A29E), Color(0x3378716C), "FREE")
+    }
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(style.bg)
+            .border(1.dp, style.border, RoundedCornerShape(6.dp))
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+    ) {
+        Text(style.label, fontSize = 10.sp, fontWeight = FontWeight.Black, color = style.fg)
+    }
+}
+
+@Composable
+fun MobileTelegramIcon(modifier: Modifier = Modifier.size(18.dp)) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val scale = w / 24f
+        val path = Path().apply {
+            moveTo(21.8f * scale, 3.2f * scale)
+            lineTo(2.4f * scale, 10.7f * scale)
+            quadraticTo(1.4f * scale, 11.1f * scale, 2.5f * scale, 11.7f * scale)
+            lineTo(7.6f * scale, 13.3f * scale)
+            lineTo(17.9f * scale, 6.8f * scale)
+            lineTo(9.5f * scale, 15.0f * scale)
+            lineTo(9.1f * scale, 19.8f * scale)
+            quadraticTo(9.3f * scale, 20.4f * scale, 9.9f * scale, 20.0f * scale)
+            lineTo(12.7f * scale, 17.4f * scale)
+            lineTo(17.7f * scale, 21.0f * scale)
+            quadraticTo(18.5f * scale, 21.5f * scale, 18.8f * scale, 20.5f * scale)
+            lineTo(22.5f * scale, 4.3f * scale)
+            quadraticTo(22.8f * scale, 3.1f * scale, 21.8f * scale, 3.2f * scale)
+            close()
+        }
+        drawPath(path, color = Color.White)
+    }
+}
+
+@Composable
+fun MobileTikTokIcon(modifier: Modifier = Modifier.size(18.dp)) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val scale = w / 24f
+        fun buildNote(ox: Float, oy: Float): Path = Path().apply {
+            val hx = 9.0f * scale + ox
+            val hy = 16.0f * scale + oy
+            val hr = 4.2f * scale
+            addOval(androidx.compose.ui.geometry.Rect(hx - hr, hy - hr, hx + hr, hy + hr))
+            addRect(androidx.compose.ui.geometry.Rect(11.2f * scale + ox, 5.0f * scale + oy, 13.8f * scale + ox, 16.0f * scale + oy))
+            moveTo(13.8f * scale + ox, 9.2f * scale + oy)
+            cubicTo(
+                16.2f * scale + ox, 11.2f * scale + oy,
+                18.5f * scale + ox, 11.8f * scale + oy,
+                21.2f * scale + ox, 11.8f * scale + oy
+            )
+            lineTo(21.2f * scale + ox, 7.8f * scale + oy)
+            cubicTo(
+                18.2f * scale + ox, 7.8f * scale + oy,
+                15.8f * scale + ox, 6.2f * scale + oy,
+                14.8f * scale + ox, 4.0f * scale + oy
+            )
+            lineTo(13.8f * scale + ox, 4.0f * scale + oy)
+            close()
+        }
+        drawPath(buildNote(-1.2f * scale, -0.8f * scale), color = Color(0xFF00F2FE))
+        drawPath(buildNote(1.2f * scale, 0.8f * scale), color = Color(0xFFFE2C55))
+        drawPath(buildNote(0f, 0f), color = Color.White)
+    }
+}
 
 @Composable
 fun MobileBrandMark(size: Dp = 56.dp, tint: Color = MaterialTheme.colorScheme.onSurface) {
@@ -1398,37 +1481,373 @@ fun MobileProfileScreen(
     ) {
         Text("Профиль", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
 
+        val uriHandler = LocalUriHandler.current
+        var selectedPeriod by remember { mutableStateOf("month") }
+        val currentTier = (profile?.tier ?: "free").lowercase()
+
+        data class MobilePlanPrice(val label: String, val proPrice: String, val maxPrice: String)
+        val periodPricing = mapOf(
+            "7d" to MobilePlanPrice("7 дней", "199 ₽", "299 ₽"),
+            "month" to MobilePlanPrice("1 месяц", "499 ₽", "699 ₽"),
+            "year" to MobilePlanPrice("1 год", "3 990 ₽", "5 490 ₽")
+        )
+        val pricing = periodPricing[selectedPeriod] ?: periodPricing["month"]!!
+
+        val mobilePalettes = listOf(
+            Triple("classic", "Классика", Pair(Color(0xFFF5F5F4), Color(0xFF1A1A1A))),
+            Triple("lavender", "Лаванда", Pair(Color(0xFFC9B6DF), Color(0xFF7A5FA8))),
+            Triple("terracotta", "Терракота", Pair(Color(0xFFE8A87C), Color(0xFF9D5626))),
+            Triple("blue", "Сапфир", Pair(Color(0xFF8EC7EA), Color(0xFF2B6EA8))),
+            Triple("emerald", "Изумруд", Pair(Color(0xFF6EE7B7), Color(0xFF059669)))
+        )
+
+        // CARD 1: USER INFO
         Card(
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(profile?.displayName?.ifBlank { "Пользователь" } ?: "Пользователь", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text(profile?.email ?: "", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("Тариф: ${(profile?.tier ?: "free").uppercase()} · Баллы: ${points?.remaining ?: profile?.points?.remaining ?: 0}", fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = profile?.displayName?.ifBlank { "Пользователь" } ?: "Пользователь",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    UserTierBadge(profile?.tier ?: "free")
+                }
+                if (!profile?.email.isNullOrBlank()) {
+                    Text(profile?.email ?: "", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Text(
+                    text = "Баллы: ${points?.remaining ?: profile?.points?.remaining ?: 0}",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
         }
 
+        // CARD 2: ТАРИФ (1:1 with website)
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(11.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text("Тариф", fontSize = 14.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
+                        UserTierBadge(profile?.tier ?: "free")
+                    }
+                    Text(
+                        text = when (currentTier) {
+                            "max" -> "Максимум возможностей"
+                            "pro" -> "Неограниченные диалоги"
+                            else -> "Лимит сообщений, обычная память"
+                        },
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                // 3 Periods Segment
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .padding(3.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    listOf("7d" to "7 дней", "month" to "1 месяц", "year" to "1 год").forEach { (periodKey, label) ->
+                        val isSelected = selectedPeriod == periodKey
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                                .clickable { selectedPeriod = periodKey }
+                                .padding(vertical = 6.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = label,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                // PRO Action Card
+                if (currentTier == "pro") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0x2610B981))
+                            .border(1.dp, Color(0x4D10B981), RoundedCornerShape(12.dp))
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF34D399), modifier = Modifier.size(15.dp))
+                            Text("ТАРИФ PRO", fontSize = 12.sp, fontWeight = FontWeight.Black, color = Color(0xFF34D399))
+                        }
+                        Text("Приобретено", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF34D399))
+                    }
+                } else if (currentTier == "max") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(15.dp))
+                            Text("ВКЛЮЧЕНО В MAX", fontSize = 12.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.primary)
+                            .clickable {
+                                uriHandler.openUri("https://iskraai.run.place/profile")
+                            }
+                            .padding(horizontal = 14.dp, vertical = 11.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(Icons.Default.Bolt, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(16.dp))
+                            Text("ОФОРМИТЬ PRO", fontSize = 12.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onPrimary)
+                        }
+                        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text(pricing.proPrice, fontSize = 14.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onPrimary)
+                            Text("/ ${pricing.label}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f))
+                        }
+                    }
+                }
+
+                // MAX Action Card
+                if (currentTier == "max") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0x33A855F7))
+                            .border(1.dp, Color(0x66A855F7), RoundedCornerShape(12.dp))
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFFC084FC), modifier = Modifier.size(15.dp))
+                            Text("ТАРИФ MAX", fontSize = 12.sp, fontWeight = FontWeight.Black, color = Color(0xFFC084FC))
+                        }
+                        Text("Приобретено", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC084FC))
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .clickable {
+                                uriHandler.openUri("https://iskraai.run.place/profile")
+                            }
+                            .padding(horizontal = 14.dp, vertical = 11.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                            Text(
+                                if (currentTier == "pro") "ПЕРЕЙТИ НА MAX" else "ОФОРМИТЬ MAX",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text(pricing.maxPrice, fontSize = 14.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
+                            Text("/ ${pricing.label}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+        }
+
+        // CARD 3: ОФОРМЛЕНИЕ (1:1 with website)
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(11.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("ОФОРМЛЕНИЕ", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.8.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Темы и акцентная палитра", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+
+                // Mode Segment
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .padding(3.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    listOf("dark" to "Тёмная", "light" to "Светлая").forEach { (modeKey, label) ->
+                        val active = themeMode == modeKey
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (active) MaterialTheme.colorScheme.primary else Color.Transparent)
+                                .clickable { onThemeModeChange(modeKey) }
+                                .padding(vertical = 7.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                if (modeKey == "dark") Icons.Default.DarkMode else Icons.Default.LightMode,
+                                contentDescription = null,
+                                tint = if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = label,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                // 2-column Grid of 5 Palettes
+                val rowPairs = listOf(
+                    listOf(mobilePalettes[0], mobilePalettes[1]),
+                    listOf(mobilePalettes[2], mobilePalettes[3]),
+                    listOf(mobilePalettes[4])
+                )
+                rowPairs.forEach { rowItems ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        rowItems.forEach { (id, label, colors) ->
+                            val active = paletteId == id
+                            Row(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .border(
+                                        if (active) 1.5.dp else 1.dp,
+                                        if (active) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                        RoundedCornerShape(12.dp)
+                                    )
+                                    .clickable { onPaletteChange(id) }
+                                    .padding(horizontal = 10.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            Brush.linearGradient(
+                                                colorStops = arrayOf(
+                                                    0.0f to colors.first,
+                                                    0.5f to colors.first,
+                                                    0.5f to colors.second,
+                                                    1.0f to colors.second
+                                                ),
+                                                start = Offset.Zero,
+                                                end = Offset(40f, 40f)
+                                            )
+                                        )
+                                )
+                                Text(
+                                    text = label,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (active) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        if (rowItems.size == 1) {
+                            Spacer(Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+        }
+
+        // CARD 4: СОЦИАЛЬНЫЕ СЕТИ (1:1 with website)
         Card(
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Тема оформления", fontWeight = FontWeight.Bold)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = themeMode == "dark", onClick = { onThemeModeChange("dark") }, label = { Text("Тёмная") })
-                    FilterChip(selected = themeMode == "light", onClick = { onThemeModeChange("light") }, label = { Text("Светлая") })
-                }
-                Text("Палитра", fontWeight = FontWeight.Bold)
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(ISKRA_PALETTES) { p ->
-                        FilterChip(
-                            selected = paletteId == p.id,
-                            onClick = { onPaletteChange(p.id) },
-                            label = { Text(p.label, fontSize = 12.sp) }
-                        )
+                Text("СОЦИАЛЬНЫЕ СЕТИ", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.8.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF229ED9))
+                            .clickable {
+                                uriHandler.openUri("https://t.me/IskraAi_ru")
+                            },
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        MobileTelegramIcon(modifier = Modifier.size(19.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Канал Telegram", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.Black)
+                            .border(1.dp, Color(0xFF2A2A2A), RoundedCornerShape(12.dp))
+                            .clickable {
+                                uriHandler.openUri("https://www.tiktok.com/@iskraai_chat")
+                            },
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        MobileTikTokIcon(modifier = Modifier.size(19.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("TikTok", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 }
             }
