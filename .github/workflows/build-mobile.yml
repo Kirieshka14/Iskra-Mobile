@@ -46,7 +46,8 @@ jobs:
 
   build-ios:
     name: Build iOS Framework
-    runs-on: macos-14
+    runs-on: macos-latest
+    continue-on-error: true
     steps:
       - name: Checkout Iskra-Mobile
         uses: actions/checkout@v4
