@@ -31,7 +31,7 @@ jobs:
           chmod +x ./gradlew
           ./gradlew :composeApp:assembleDebug --no-daemon
           APK_PATH=$(find composeApp/build/outputs/apk -name "*.apk" -type f | head -n 1)
-          cp "$APK_PATH" "$GITHUB_WORKSPACE/Iskra-Android-v0.8.1.1.apk"
+          cp "$APK_PATH" "$GITHUB_WORKSPACE/Iskra-Android-${GITHUB_REF_NAME}.apk"
 
       - name: Publish Android Release Asset
         if: startsWith(github.ref, 'refs/tags/')
@@ -40,7 +40,7 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           fail_on_unmatched_files: false
-          files: Iskra-Android-v0.8.1.1.apk
+          files: Iskra-Android-*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -62,7 +62,7 @@ jobs:
         run: |
           chmod +x ./gradlew
           ./gradlew :composeApp:linkReleaseFrameworkIosArm64 --no-daemon
-          zip -r Iskra-iOS-Framework-v0.8.1.1.zip composeApp/build/bin/iosArm64/releaseFramework
+          zip -r "Iskra-iOS-Framework-${GITHUB_REF_NAME}.zip" composeApp/build/bin/iosArm64/releaseFramework
 
       - name: Publish iOS Release Asset
         if: startsWith(github.ref, 'refs/tags/')
@@ -71,6 +71,6 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           fail_on_unmatched_files: false
-          files: Iskra-iOS-Framework-v0.8.1.1.zip
+          files: Iskra-iOS-Framework-*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
