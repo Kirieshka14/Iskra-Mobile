@@ -126,9 +126,44 @@ data class UserProfile(
     val role: String? = null,
     val tier: String = "free",
     val avatarUrl: String? = null,
+    @SerialName("avatar_url") val rawAvatarUrl: String? = null,
     val plan: String = "Free",
     val points: Points = Points(),
     val enhancedMemory: Boolean = false
+) {
+    val effectiveAvatarUrl: String?
+        get() = avatarUrl?.takeIf { it.isNotBlank() } ?: rawAvatarUrl?.takeIf { it.isNotBlank() }
+}
+
+@Serializable
+data class ClientApp(
+    val id: String,
+    @SerialName("user_id") val userId: String = "",
+    @SerialName("app_name") val appName: String,
+    val platform: String = "android",
+    @SerialName("key_prefix") val keyPrefix: String = "",
+    val status: String = "active",
+    @SerialName("created_at") val createdAt: String = "",
+    @SerialName("last_used_at") val lastUsedAt: String? = null
+)
+
+@Serializable
+data class DeveloperKeysResponse(
+    val apps: List<ClientApp> = emptyList(),
+    val tier: String = "free",
+    val maxKeys: Int = 3
+)
+
+@Serializable
+data class CreateDeveloperKeyRequest(
+    val appName: String,
+    val platform: String = "android"
+)
+
+@Serializable
+data class CreateDeveloperKeyResponse(
+    val app: ClientApp,
+    val rawKey: String
 )
 
 @Serializable

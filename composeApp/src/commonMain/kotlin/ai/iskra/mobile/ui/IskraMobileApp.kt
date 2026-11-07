@@ -234,6 +234,7 @@ fun IskraMobileApp(api: IskraMobileApi = remember { IskraMobileApi() }) {
                             MobileTab.TAVERN -> MobileTavernScreen(api = api)
                             MobileTab.STORIES -> MobileStoriesScreen(api = api)
                             MobileTab.PROFILE -> MobileProfileScreen(
+                                api = api,
                                 profile = profile,
                                 points = points,
                                 themeMode = themeMode,
@@ -274,13 +275,21 @@ fun MobileAuthScreen(api: IskraMobileApi, onAuthenticated: () -> Unit) {
     var termsAccepted by remember { mutableStateOf(true) }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var legalDocToShow by remember { mutableStateOf<MobileLegalDocType?>(null) }
     val scope = rememberCoroutineScope()
+
+    if (legalDocToShow != null) {
+        MobileLegalDocumentDialog(
+            initialTab = legalDocToShow!!,
+            onDismiss = { legalDocToShow = null }
+        )
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp),
+            .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
         Card(
@@ -291,12 +300,17 @@ fun MobileAuthScreen(api: IskraMobileApi, onAuthenticated: () -> Unit) {
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
-                modifier = Modifier.padding(22.dp),
+                modifier = Modifier.padding(18.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                MobileBrandMark(size = 56.dp)
-                Text("IskraAi", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    MobileBrandMark(size = 36.dp)
+                    Text("IskraAi", fontSize = 19.sp, fontWeight = FontWeight.Bold)
+                }
 
                 AnimatedContent(
                     targetState = mode,
@@ -520,12 +534,34 @@ fun MobileAuthScreen(api: IskraMobileApi, onAuthenticated: () -> Unit) {
                                         }
                                     }
                                 } else {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.fillMaxWidth().clickable { termsAccepted = !termsAccepted }
-                                    ) {
-                                        Checkbox(checked = termsAccepted, onCheckedChange = { termsAccepted = it })
-                                        Text("Принимаю условия и политику (18+)", fontSize = 12.sp)
+                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.fillMaxWidth().clickable { termsAccepted = !termsAccepted }
+                                        ) {
+                                            Checkbox(checked = termsAccepted, onCheckedChange = { termsAccepted = it })
+                                            Text("Мне исполнилось 18 лет, принимаю условия", fontSize = 12.sp)
+                                        }
+                                        Row(
+                                            modifier = Modifier.padding(start = 12.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            Text(
+                                                text = "Условия (18+)",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.clickable { legalDocToShow = MobileLegalDocType.TERMS }
+                                            )
+                                            Text("•", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            Text(
+                                                text = "Конфиденциальность",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.clickable { legalDocToShow = MobileLegalDocType.PRIVACY }
+                                            )
+                                        }
                                     }
                                 }
 
@@ -555,13 +591,32 @@ fun MobileAuthScreen(api: IskraMobileApi, onAuthenticated: () -> Unit) {
                                         }
                                     },
                                     enabled = !busy && email.isNotBlank() && password.length >= 6 && (currentMode == "login" || (displayName.isNotBlank() && termsAccepted)),
-                                    modifier = Modifier.fillMaxWidth().height(46.dp)
+                                    modifier = Modifier.fillMaxWidth().height(44.dp)
                                 ) {
                                     Text(if (busy) "Подождите…" else if (currentMode == "login") "Войти" else "Продолжить")
                                 }
                             }
                         }
                     }
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Политика конфиденциальности",
+                        fontSize = 10.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.clickable { legalDocToShow = MobileLegalDocType.PRIVACY }
+                    )
+                    Text("•", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        text = "Условия (18+)",
+                        fontSize = 10.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.clickable { legalDocToShow = MobileLegalDocType.TERMS }
+                    )
                 }
             }
         }
@@ -1294,6 +1349,7 @@ fun MobileStoriesScreen(api: IskraMobileApi) {
 
 @Composable
 fun MobileProfileScreen(
+    api: IskraMobileApi,
     profile: UserProfile?,
     points: Points?,
     themeMode: String,
@@ -1302,7 +1358,44 @@ fun MobileProfileScreen(
     onPaletteChange: (String) -> Unit,
     onLogout: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    val scope = rememberCoroutineScope()
+    var legalDocToShow by remember { mutableStateOf<MobileLegalDocType?>(null) }
+    var devApps by remember { mutableStateOf<List<ClientApp>>(emptyList()) }
+    var maxDevKeys by remember { mutableStateOf(3) }
+    var newAppName by remember { mutableStateOf("") }
+    var newAppPlatform by remember { mutableStateOf("android") }
+    var revealedRawKey by remember { mutableStateOf<String?>(null) }
+    var keyBusy by remember { mutableStateOf(false) }
+    var keyMsg by remember { mutableStateOf<String?>(null) }
+
+    fun reloadKeys() {
+        scope.launch {
+            runCatching { api.getDeveloperKeys() }
+                .onSuccess { res ->
+                    devApps = res.apps
+                    maxDevKeys = res.maxKeys
+                }
+        }
+    }
+
+    LaunchedEffect(profile?.id) {
+        reloadKeys()
+    }
+
+    if (legalDocToShow != null) {
+        MobileLegalDocumentDialog(
+            initialTab = legalDocToShow!!,
+            onDismiss = { legalDocToShow = null }
+        )
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
         Text("Профиль", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
 
         Card(
@@ -1337,6 +1430,143 @@ fun MobileProfileScreen(
                             label = { Text(p.label, fontSize = 12.sp) }
                         )
                     }
+                }
+            }
+        }
+
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("API ключи (${devApps.count { it.status == "active" }}/$maxDevKeys)", fontWeight = FontWeight.Bold)
+                    Text(
+                        text = "Доступно всем",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF34D399)
+                    )
+                }
+
+                if (revealedRawKey != null) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0x2234D399))
+                            .padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text("Ваш новый ключ:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF34D399))
+                        Text(revealedRawKey!!, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+
+                OutlinedTextField(
+                    value = newAppName,
+                    onValueChange = { newAppName = it },
+                    label = { Text("Название приложения") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Button(
+                    onClick = {
+                        if (newAppName.trim().length < 2) {
+                            keyMsg = "Введите название от 2 символов"
+                            return@Button
+                        }
+                        scope.launch {
+                            keyBusy = true
+                            keyMsg = null
+                            runCatching { api.createDeveloperKey(newAppName.trim(), newAppPlatform) }
+                                .onSuccess { created ->
+                                    revealedRawKey = created.rawKey
+                                    newAppName = ""
+                                    reloadKeys()
+                                }
+                                .onFailure { e -> keyMsg = e.message }
+                            keyBusy = false
+                        }
+                    },
+                    enabled = !keyBusy,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(if (keyBusy) "Создание…" else "+ Создать API ключ")
+                }
+
+                devApps.forEach { item ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .padding(10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("${item.appName} (${item.platform.uppercase()})", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text("${item.keyPrefix}... • ${item.status}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            TextButton(
+                                onClick = {
+                                    scope.launch {
+                                        runCatching { api.rotateDeveloperKey(item.id) }
+                                            .onSuccess { rotated ->
+                                                revealedRawKey = rotated.rawKey
+                                                reloadKeys()
+                                            }
+                                    }
+                                }
+                            ) {
+                                Text("↻", fontSize = 13.sp)
+                            }
+                            TextButton(
+                                onClick = {
+                                    scope.launch {
+                                        runCatching { api.revokeDeveloperKey(item.id, true) }
+                                            .onSuccess { reloadKeys() }
+                                    }
+                                }
+                            ) {
+                                Text("✕", fontSize = 13.sp, color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    }
+                }
+
+                if (keyMsg != null) {
+                    Text(keyMsg!!, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Правовая информация (18+)", fontWeight = FontWeight.Bold)
+                OutlinedButton(
+                    onClick = { legalDocToShow = MobileLegalDocType.PRIVACY },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Политика конфиденциальности (152-ФЗ)")
+                }
+                OutlinedButton(
+                    onClick = { legalDocToShow = MobileLegalDocType.TERMS },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Пользовательское соглашение (18+)")
                 }
             }
         }

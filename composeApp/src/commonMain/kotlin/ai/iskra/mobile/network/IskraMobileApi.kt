@@ -132,7 +132,7 @@ class IskraMobileApi(
             this.method = method
             header(HttpHeaders.Accept, ContentType.Application.Json)
             header(HttpHeaders.Origin, "https://iskraai.pages.dev")
-            header(HttpHeaders.UserAgent, "IskraMobile/0.8.1")
+            header(HttpHeaders.UserAgent, "IskraMobile/0.8.2")
             val token = session?.accessToken
             if (!token.isNullOrBlank()) {
                 header(HttpHeaders.Authorization, "Bearer $token")
@@ -338,6 +338,35 @@ class IskraMobileApi(
 
     suspend fun getProfile(): UserProfile =
         request("/api/profile", responseSerializer = UserProfile.serializer())
+
+    suspend fun getDeveloperKeys(): DeveloperKeysResponse =
+        request("/api/developer/keys", responseSerializer = DeveloperKeysResponse.serializer())
+
+    @Suppress("UNCHECKED_CAST")
+    suspend fun createDeveloperKey(appName: String, platform: String = "android"): CreateDeveloperKeyResponse =
+        request(
+            path = "/api/developer/keys",
+            method = HttpMethod.Post,
+            bodyObj = CreateDeveloperKeyRequest(appName = appName.trim(), platform = platform),
+            bodySerializer = CreateDeveloperKeyRequest.serializer() as KSerializer<Any>,
+            responseSerializer = CreateDeveloperKeyResponse.serializer()
+        )
+
+    suspend fun rotateDeveloperKey(appId: String): CreateDeveloperKeyResponse =
+        request(
+            path = "/api/developer/keys/$appId/rotate",
+            method = HttpMethod.Post,
+            responseSerializer = CreateDeveloperKeyResponse.serializer()
+        )
+
+    suspend fun revokeDeveloperKey(appId: String, permanent: Boolean = true) {
+        val suffix = if (permanent) "?permanent=true" else ""
+        request(
+            path = "/api/developer/keys/$appId$suffix",
+            method = HttpMethod.Delete,
+            responseSerializer = JsonObject.serializer()
+        )
+    }
 
     suspend fun getPoints(): Points =
         request("/api/points", responseSerializer = Points.serializer())
