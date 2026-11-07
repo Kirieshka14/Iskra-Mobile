@@ -379,20 +379,21 @@ fun MobileAuthScreen(api: IskraMobileApi, onAuthenticated: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .animateContentSize(animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)),
-            shape = RoundedCornerShape(22.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
         ) {
             Column(
-                modifier = Modifier.padding(18.dp),
+                modifier = Modifier.padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    MobileBrandMark(size = 36.dp)
-                    Text("IskraAi", fontSize = 19.sp, fontWeight = FontWeight.Bold)
+                    MobileBrandMark(size = 44.dp)
+                    Text("IskraAi", fontSize = 22.sp, fontWeight = FontWeight.Black)
                 }
 
                 AnimatedContent(
@@ -409,12 +410,12 @@ fun MobileAuthScreen(api: IskraMobileApi, onAuthenticated: () -> Unit) {
                     ) {
                         Text(
                             text = if (currentMode == "register") "Создай аккаунт" else "С возвращением",
-                            fontSize = 19.sp,
-                            fontWeight = FontWeight.Bold
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.ExtraBold
                         )
                         Text(
-                            text = if (currentMode == "register") "Истории и персонажи ждут тебя" else "Продолжи свои истории",
-                            fontSize = 12.sp,
+                            text = if (currentMode == "register") "Персонажи, диалоги и истории ждут" else "Войди, чтобы продолжить общение",
+                            fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -617,39 +618,39 @@ fun MobileAuthScreen(api: IskraMobileApi, onAuthenticated: () -> Unit) {
                                         }
                                     }
                                 } else {
-                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.fillMaxWidth().clickable { termsAccepted = !termsAccepted }
-                                        ) {
-                                            Checkbox(checked = termsAccepted, onCheckedChange = { termsAccepted = it })
-                                            Text("Мне исполнилось 18 лет, принимаю условия", fontSize = 12.sp)
-                                        }
-                                        Row(
-                                            modifier = Modifier.padding(start = 12.dp),
-                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                        ) {
-                                            Text(
-                                                text = "Условия (18+)",
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.clickable { legalDocToShow = MobileLegalDocType.TERMS }
-                                            )
-                                            Text("•", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                            Text(
-                                                text = "Конфиденциальность",
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.clickable { legalDocToShow = MobileLegalDocType.PRIVACY }
-                                            )
-                                        }
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { termsAccepted = !termsAccepted }
+                                    ) {
+                                        Checkbox(
+                                            checked = termsAccepted,
+                                            onCheckedChange = { termsAccepted = it }
+                                        )
+                                        Text(
+                                            text = "Мне исполнилось 18 лет, принимаю условия",
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
                                     }
                                 }
 
                                 if (error != null) {
-                                    Text(error!!, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                                    Surface(
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.12f),
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.45f)),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text(
+                                            text = error!!,
+                                            color = MaterialTheme.colorScheme.error,
+                                            fontSize = 12.sp,
+                                            lineHeight = 16.sp,
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+                                        )
+                                    }
                                 }
 
                                 Button(
@@ -674,9 +675,29 @@ fun MobileAuthScreen(api: IskraMobileApi, onAuthenticated: () -> Unit) {
                                         }
                                     },
                                     enabled = !busy && email.isNotBlank() && password.length >= 6 && (currentMode == "login" || (displayName.isNotBlank() && termsAccepted)),
-                                    modifier = Modifier.fillMaxWidth().height(44.dp)
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.fillMaxWidth().height(46.dp)
                                 ) {
-                                    Text(if (busy) "Подождите…" else if (currentMode == "login") "Войти" else "Продолжить")
+                                    if (busy) {
+                                        Row(
+                                            horizontalArrangement = Arrangement.Center,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(18.dp),
+                                                strokeWidth = 2.dp,
+                                                color = MaterialTheme.colorScheme.onPrimary
+                                            )
+                                            Spacer(Modifier.width(10.dp))
+                                            Text("Соединение…", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    } else {
+                                        Text(
+                                            text = if (currentMode == "login") "Войти" else "Продолжить",
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -684,19 +705,24 @@ fun MobileAuthScreen(api: IskraMobileApi, onAuthenticated: () -> Unit) {
                 }
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "Политика конфиденциальности",
-                        fontSize = 10.sp,
+                        fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.clickable { legalDocToShow = MobileLegalDocType.PRIVACY }
                     )
-                    Text("•", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        text = "  •  ",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
                     Text(
                         text = "Условия (18+)",
-                        fontSize = 10.sp,
+                        fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.clickable { legalDocToShow = MobileLegalDocType.TERMS }
                     )

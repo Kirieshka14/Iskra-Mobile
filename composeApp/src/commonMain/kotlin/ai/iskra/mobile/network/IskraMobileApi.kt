@@ -52,9 +52,9 @@ class IskraMobileApi(
             json(this@IskraMobileApi.json)
         }
         install(HttpTimeout) {
-            requestTimeoutMillis = 60_000
-            connectTimeoutMillis = 20_000
-            socketTimeoutMillis = 60_000
+            requestTimeoutMillis = 25_000
+            connectTimeoutMillis = 10_000
+            socketTimeoutMillis = 25_000
         }
     }
 
@@ -92,7 +92,7 @@ class IskraMobileApi(
         } catch (_: Exception) {}
     }
 
-    private suspend fun <T> withRetry(retries: Int = 2, block: suspend () -> T): T {
+    private suspend fun <T> withRetry(retries: Int = 1, block: suspend () -> T): T {
         var lastError: Throwable? = null
         for (attempt in 0..retries) {
             try {
@@ -100,19 +100,30 @@ class IskraMobileApi(
             } catch (e: IskraMobileApiException) {
                 if (e.status in 502..504 && attempt < retries) {
                     lastError = e
-                    kotlinx.coroutines.delay(2500)
+                    kotlinx.coroutines.delay(1800)
                     continue
                 }
                 throw e
             } catch (e: Throwable) {
                 lastError = e
                 if (attempt < retries) {
-                    kotlinx.coroutines.delay(2500)
+                    kotlinx.coroutines.delay(1800)
                 } else {
+                    val msg = if (e.message?.contains("timeout", ignoreCase = true) == true ||
+                        e.message?.contains("timed out", ignoreCase = true) == true ||
+                        e.message?.contains("ConnectException", ignoreCase = true) == true ||
+                        e.message?.contains("Unable to resolve host", ignoreCase = true) == true ||
+                        e.message?.contains("UnknownHostException", ignoreCase = true) == true ||
+                        e.message?.contains("SSL", ignoreCase = true) == true
+                    ) {
+                        "Не удалось подключиться к серверу. Если вы в РФ, проверьте интернет или включите VPN (хостинг Render/Cloudflare блокируется провайдерами)."
+                    } else {
+                        "Ошибка соединения с сервером. Попробуйте ещё раз через пару секунд."
+                    }
                     throw IskraMobileApiException(
                         status = 503,
                         code = "NETWORK_ERROR",
-                        message = "Сервер просыпается или недоступен. Попробуйте ещё раз через пару секунд."
+                        message = msg
                     )
                 }
             }
