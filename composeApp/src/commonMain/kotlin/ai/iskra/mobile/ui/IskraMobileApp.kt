@@ -20,7 +20,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -28,10 +33,41 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+@Composable
+fun MobileBrandMark(size: Dp = 56.dp, tint: Color = MaterialTheme.colorScheme.onSurface) {
+    Canvas(modifier = Modifier.size(size)) {
+        val w = this.size.width
+        val h = this.size.height
+        val cx = w * 0.56f
+        val cy = h * 0.44f
+        val rOuter = w * 0.36f
+        val rInner = w * 0.09f
+        val starPath = Path().apply {
+            moveTo(cx, cy - rOuter)
+            quadraticTo(cx + rInner * 0.4f, cy - rInner * 0.4f, cx + rOuter, cy)
+            quadraticTo(cx + rInner * 0.4f, cy + rInner * 0.4f, cx, cy + rOuter)
+            quadraticTo(cx - rInner * 0.4f, cy + rInner * 0.4f, cx - rOuter, cy)
+            quadraticTo(cx - rInner * 0.4f, cy - rInner * 0.4f, cx, cy - rOuter)
+            close()
+        }
+        drawPath(starPath, color = tint)
+        drawArc(
+            color = tint,
+            startAngle = 35f,
+            sweepAngle = 210f,
+            useCenter = false,
+            topLeft = Offset(w * 0.14f, h * 0.18f),
+            size = androidx.compose.ui.geometry.Size(w * 0.68f, h * 0.68f),
+            style = Stroke(width = w * 0.08f, cap = StrokeCap.Round)
+        )
+    }
+}
 
 enum class MobileTab(val title: String) {
     CATALOG("Каталог"),
@@ -108,6 +144,10 @@ fun IskraMobileApp(api: IskraMobileApi = remember { IskraMobileApi() }) {
     var profile by remember { mutableStateOf<UserProfile?>(null) }
     var points by remember { mutableStateOf<Points?>(null) }
     val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        api.warmBackend()
+    }
 
     LaunchedEffect(isAuthenticated) {
         if (isAuthenticated) {
@@ -241,13 +281,18 @@ fun MobileAuthScreen(api: IskraMobileApi, onAuthenticated: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Box(
-                    modifier = Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.primary),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("I", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Black, fontSize = 26.sp)
-                }
-                Text("IskraAi", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+                MobileBrandMark(size = 60.dp)
+                Text("IskraAi", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    text = if (mode == "register") "Создай аккаунт" else "С возвращением",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = if (mode == "register") "Истории и персонажи ждут тебя" else "Продолжи свои истории",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
 
                 when (step) {
                     "otp" -> {
@@ -365,7 +410,7 @@ fun MobileAuthScreen(api: IskraMobileApi, onAuthenticated: () -> Unit) {
                                     }
                                 }
                             },
-                            enabled = !busy && otpCode.length == 6 && newPassword.length >= 8,
+                            enabled = !busy && otpCode.length == 6 && newPassword.length >= 6,
                             modifier = Modifier.fillMaxWidth().height(46.dp)
                         ) {
                             Text(if (busy) "Сохранение…" else "Сохранить пароль")
@@ -376,8 +421,8 @@ fun MobileAuthScreen(api: IskraMobileApi, onAuthenticated: () -> Unit) {
                         Row(
                             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(4.dp)
                         ) {
-                            MobileTabPill("Вход", mode == "login", Modifier.weight(1f)) { mode = "login"; error = null }
                             MobileTabPill("Регистрация", mode == "register", Modifier.weight(1f)) { mode = "register"; error = null }
+                            MobileTabPill("Вход", mode == "login", Modifier.weight(1f)) { mode = "login"; error = null }
                         }
 
                         if (mode == "register") {
@@ -453,10 +498,10 @@ fun MobileAuthScreen(api: IskraMobileApi, onAuthenticated: () -> Unit) {
                                     }
                                 }
                             },
-                            enabled = !busy && email.isNotBlank() && password.length >= 8 && (mode == "login" || (displayName.isNotBlank() && termsAccepted)),
+                            enabled = !busy && email.isNotBlank() && password.length >= 6 && (mode == "login" || (displayName.isNotBlank() && termsAccepted)),
                             modifier = Modifier.fillMaxWidth().height(46.dp)
                         ) {
-                            Text(if (busy) "Подождите…" else if (mode == "login") "Войти" else "Создать аккаунт")
+                            Text(if (busy) "Подождите…" else if (mode == "login") "Войти" else "Продолжить")
                         }
                     }
                 }
@@ -469,11 +514,16 @@ fun MobileAuthScreen(api: IskraMobileApi, onAuthenticated: () -> Unit) {
 private fun MobileTabPill(text: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Surface(
         modifier = modifier.clip(RoundedCornerShape(9.dp)).clickable(onClick = onClick),
-        color = if (selected) MaterialTheme.colorScheme.surface else Color.Transparent,
+        color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
         shape = RoundedCornerShape(9.dp)
     ) {
         Box(modifier = Modifier.padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
-            Text(text, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium, fontSize = 13.sp)
+            Text(
+                text = text,
+                color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                fontSize = 13.sp
+            )
         }
     }
 }
@@ -511,7 +561,16 @@ fun MobileCatalogScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Персонажи IskraAi", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            MobileBrandMark(size = 32.dp)
+            Column {
+                Text("IskraAi", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text("Начните новую историю", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
 
         OutlinedTextField(
             value = search,

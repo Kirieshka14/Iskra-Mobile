@@ -1,13 +1,13 @@
 {
   "clientName": "Iskra Mobile Client",
-  "clientVersion": "0.8.0",
+  "clientVersion": "0.8.1",
   "targetPlatform": "android",
   "apiUrl": "https://bacand-iskra.onrender.com",
-  "clientKey": "iskra_app_live_YOUR_KEY_HERE",
+  "clientKey": "",
   "theme": {
-    "accent": "#f43f5e",
-    "background": "#0d0f12",
-    "surface": "#161920"
+    "accent": "#f5f5f4",
+    "background": "#131313",
+    "surface": "#1a1a1a"
   },
   "features": {
     "haptics": true,

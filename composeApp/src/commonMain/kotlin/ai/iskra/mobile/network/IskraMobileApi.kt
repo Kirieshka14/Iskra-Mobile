@@ -84,6 +84,42 @@ class IskraMobileApi(
         saveSession(current.copy(themeMode = themeMode, paletteId = paletteId))
     }
 
+    suspend fun warmBackend() {
+        try {
+            http.get("${baseUrl.trimEnd('/')}/api/capabilities") {
+                header(HttpHeaders.Origin, "https://iskraai.pages.dev")
+            }
+        } catch (_: Exception) {}
+    }
+
+    private suspend fun <T> withRetry(retries: Int = 2, block: suspend () -> T): T {
+        var lastError: Throwable? = null
+        for (attempt in 0..retries) {
+            try {
+                return block()
+            } catch (e: IskraMobileApiException) {
+                if (e.status in 502..504 && attempt < retries) {
+                    lastError = e
+                    kotlinx.coroutines.delay(2500)
+                    continue
+                }
+                throw e
+            } catch (e: Throwable) {
+                lastError = e
+                if (attempt < retries) {
+                    kotlinx.coroutines.delay(2500)
+                } else {
+                    throw IskraMobileApiException(
+                        status = 503,
+                        code = "NETWORK_ERROR",
+                        message = "Сервер просыпается или недоступен. Попробуйте ещё раз через пару секунд."
+                    )
+                }
+            }
+        }
+        throw lastError ?: IskraMobileApiException(500, "UNKNOWN", "Ошибка соединения")
+    }
+
     private suspend fun <T> executeRaw(
         path: String,
         method: HttpMethod = HttpMethod.Get,
@@ -95,6 +131,8 @@ class IskraMobileApi(
         val response: HttpResponse = http.request(url) {
             this.method = method
             header(HttpHeaders.Accept, ContentType.Application.Json)
+            header(HttpHeaders.Origin, "https://iskraai.pages.dev")
+            header(HttpHeaders.UserAgent, "IskraMobile/0.8.1")
             val token = session?.accessToken
             if (!token.isNullOrBlank()) {
                 header(HttpHeaders.Authorization, "Bearer $token")
@@ -136,7 +174,9 @@ class IskraMobileApi(
         responseSerializer: KSerializer<T>
     ): T {
         return try {
-            executeRaw(path, method, bodyObj, bodySerializer, responseSerializer)
+            withRetry {
+                executeRaw(path, method, bodyObj, bodySerializer, responseSerializer)
+            }
         } catch (e: IskraMobileApiException) {
             if (e.status == 401 && session?.accessToken?.isNotBlank() == true && !path.startsWith("/api/auth/")) {
                 if (refreshSession()) {

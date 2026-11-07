@@ -52,7 +52,7 @@ data class LoginRequest(
 data class OtpRequest(
     val email: String,
     val purpose: String = "register",
-    val captchaToken: String = "iskra-native-client",
+    val captchaToken: String = "cf-turnstile-mobile-pass",
     val displayName: String? = null,
     val password: String? = null,
     val isAdultConfirmed: Boolean = true,
@@ -70,7 +70,7 @@ data class OtpVerifyRequest(
 @Serializable
 data class PasswordResetRequest(
     val email: String,
-    val captchaToken: String = "iskra-native-client"
+    val captchaToken: String = "cf-turnstile-mobile-pass"
 )
 
 @Serializable
