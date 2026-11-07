@@ -7,7 +7,7 @@
 Скачайте установочный файл из раздела **Releases**:
 
 - **Android**:
-  1. Скачайте файл `.apk` (`Iskra-Android-v0.8.1.apk`) на устройство.
+  1. Скачайте файл `.apk` (`Iskra-Android-v0.8.1.1.apk`) на устройство.
   2. Откройте файл через проводник или браузер.
   3. Если система запросит разрешение на установку из неизвестных источников, подтвердите его и завершите установку.
 - **iOS**:
@@ -21,7 +21,7 @@
 ```json
 {
   "clientName": "Iskra Mobile Client",
-  "clientVersion": "0.8.1",
+  "clientVersion": "0.8.1.1",
   "targetPlatform": "android",
   "apiUrl": "https://bacand-iskra.onrender.com",
   "clientKey": "",

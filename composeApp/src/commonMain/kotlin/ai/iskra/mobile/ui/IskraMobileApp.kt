@@ -4,6 +4,9 @@ import ai.iskra.mobile.model.*
 import ai.iskra.mobile.network.IskraMobileApi
 import ai.iskra.mobile.network.IskraMobileApiException
 import ai.iskra.mobile.network.generateOperationKey
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -11,8 +14,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -20,11 +25,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.Canvas
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -270,9 +276,17 @@ fun MobileAuthScreen(api: IskraMobileApi, onAuthenticated: () -> Unit) {
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
-    Box(modifier = Modifier.fillMaxSize().padding(20.dp), contentAlignment = Alignment.Center) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp),
+        contentAlignment = Alignment.Center
+    ) {
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .animateContentSize(animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)),
             shape = RoundedCornerShape(22.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
@@ -281,18 +295,33 @@ fun MobileAuthScreen(api: IskraMobileApi, onAuthenticated: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                MobileBrandMark(size = 60.dp)
+                MobileBrandMark(size = 56.dp)
                 Text("IskraAi", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                Text(
-                    text = if (mode == "register") "Создай аккаунт" else "С возвращением",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = if (mode == "register") "Истории и персонажи ждут тебя" else "Продолжи свои истории",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+
+                AnimatedContent(
+                    targetState = mode,
+                    transitionSpec = {
+                        (fadeIn(tween(240)) + slideInVertically(tween(240)) { it / 3 })
+                            .togetherWith(fadeOut(tween(160)))
+                    },
+                    label = "MobileAuthHeading"
+                ) { currentMode ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = if (currentMode == "register") "Создай аккаунт" else "С возвращением",
+                            fontSize = 19.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = if (currentMode == "register") "Истории и персонажи ждут тебя" else "Продолжи свои истории",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
 
                 when (step) {
                     "otp" -> {
@@ -383,7 +412,13 @@ fun MobileAuthScreen(api: IskraMobileApi, onAuthenticated: () -> Unit) {
                             onValueChange = { newPassword = it },
                             label = { Text("Новый пароль") },
                             singleLine = true,
-                            visualTransformation = PasswordVisualTransformation(),
+                            visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                            trailingIcon = {
+                                MobileAnimatedEyeSlashIcon(
+                                    visible = showPassword,
+                                    onClick = { showPassword = !showPassword }
+                                )
+                            },
                             modifier = Modifier.fillMaxWidth()
                         )
                         if (error != null) {
@@ -418,90 +453,113 @@ fun MobileAuthScreen(api: IskraMobileApi, onAuthenticated: () -> Unit) {
                     }
 
                     else -> {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(4.dp)
-                        ) {
-                            MobileTabPill("Регистрация", mode == "register", Modifier.weight(1f)) { mode = "register"; error = null }
-                            MobileTabPill("Вход", mode == "login", Modifier.weight(1f)) { mode = "login"; error = null }
-                        }
-
-                        if (mode == "register") {
-                            OutlinedTextField(
-                                value = displayName,
-                                onValueChange = { displayName = it },
-                                label = { Text("Имя или псевдоним") },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-
-                        OutlinedTextField(
-                            value = email,
-                            onValueChange = { email = it },
-                            label = { Text("Электронная почта") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        OutlinedTextField(
-                            value = password,
-                            onValueChange = { password = it },
-                            label = { Text("Пароль") },
-                            singleLine = true,
-                            visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                            trailingIcon = {
-                                IconButton(onClick = { showPassword = !showPassword }) {
-                                    Icon(if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility, contentDescription = null)
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        if (mode == "login") {
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                                TextButton(onClick = { step = "reset-request"; error = null }) {
-                                    Text("Забыли пароль?", fontSize = 12.sp)
-                                }
-                            }
-                        } else {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth().clickable { termsAccepted = !termsAccepted }
-                            ) {
-                                Checkbox(checked = termsAccepted, onCheckedChange = { termsAccepted = it })
-                                Text("Принимаю условия и политику (18+)", fontSize = 12.sp)
-                            }
-                        }
-
-                        if (error != null) {
-                            Text(error!!, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
-                        }
-
-                        Button(
-                            onClick = {
-                                scope.launch {
-                                    busy = true
+                        MobileAnimatedAuthTabs(
+                            mode = mode,
+                            onSelectMode = { nextMode ->
+                                if (mode != nextMode) {
+                                    mode = nextMode
                                     error = null
-                                    try {
-                                        if (mode == "login") {
-                                            api.login(email, password)
-                                            onAuthenticated()
-                                        } else {
-                                            api.requestOtp(email, displayName, password, false)
-                                            otpCode = ""
-                                            step = "otp"
+                                }
+                            }
+                        )
+
+                        AnimatedContent(
+                            targetState = mode,
+                            transitionSpec = {
+                                val dir = if (targetState == "login") 1 else -1
+                                (slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { w -> dir * (w / 5) } +
+                                    fadeIn(tween(260)))
+                                    .togetherWith(
+                                        slideOutHorizontally(tween(240, easing = FastOutSlowInEasing)) { w -> -dir * (w / 5) } +
+                                            fadeOut(tween(180))
+                                    )
+                            },
+                            label = "MobileAuthFormTransition"
+                        ) { currentMode ->
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                if (currentMode == "register") {
+                                    OutlinedTextField(
+                                        value = displayName,
+                                        onValueChange = { displayName = it },
+                                        label = { Text("Имя или псевдоним") },
+                                        singleLine = true,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+
+                                OutlinedTextField(
+                                    value = email,
+                                    onValueChange = { email = it },
+                                    label = { Text("Электронная почта") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+
+                                OutlinedTextField(
+                                    value = password,
+                                    onValueChange = { password = it },
+                                    label = { Text("Пароль") },
+                                    singleLine = true,
+                                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                                    trailingIcon = {
+                                        MobileAnimatedEyeSlashIcon(
+                                            visible = showPassword,
+                                            onClick = { showPassword = !showPassword }
+                                        )
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+
+                                if (currentMode == "login") {
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                        TextButton(onClick = { step = "reset-request"; error = null }) {
+                                            Text("Забыли пароль?", fontSize = 12.sp)
                                         }
-                                    } catch (e: Exception) {
-                                        error = e.message ?: "Ошибка авторизации"
-                                    } finally {
-                                        busy = false
+                                    }
+                                } else {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth().clickable { termsAccepted = !termsAccepted }
+                                    ) {
+                                        Checkbox(checked = termsAccepted, onCheckedChange = { termsAccepted = it })
+                                        Text("Принимаю условия и политику (18+)", fontSize = 12.sp)
                                     }
                                 }
-                            },
-                            enabled = !busy && email.isNotBlank() && password.length >= 6 && (mode == "login" || (displayName.isNotBlank() && termsAccepted)),
-                            modifier = Modifier.fillMaxWidth().height(46.dp)
-                        ) {
-                            Text(if (busy) "Подождите…" else if (mode == "login") "Войти" else "Продолжить")
+
+                                if (error != null) {
+                                    Text(error!!, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                                }
+
+                                Button(
+                                    onClick = {
+                                        scope.launch {
+                                            busy = true
+                                            error = null
+                                            try {
+                                                if (currentMode == "login") {
+                                                    api.login(email, password)
+                                                    onAuthenticated()
+                                                } else {
+                                                    api.requestOtp(email, displayName, password, false)
+                                                    otpCode = ""
+                                                    step = "otp"
+                                                }
+                                            } catch (e: Exception) {
+                                                error = e.message ?: "Ошибка авторизации"
+                                            } finally {
+                                                busy = false
+                                            }
+                                        }
+                                    },
+                                    enabled = !busy && email.isNotBlank() && password.length >= 6 && (currentMode == "login" || (displayName.isNotBlank() && termsAccepted)),
+                                    modifier = Modifier.fillMaxWidth().height(46.dp)
+                                ) {
+                                    Text(if (busy) "Подождите…" else if (currentMode == "login") "Войти" else "Продолжить")
+                                }
+                            }
                         }
                     }
                 }
@@ -511,19 +569,153 @@ fun MobileAuthScreen(api: IskraMobileApi, onAuthenticated: () -> Unit) {
 }
 
 @Composable
-private fun MobileTabPill(text: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Surface(
-        modifier = modifier.clip(RoundedCornerShape(9.dp)).clickable(onClick = onClick),
-        color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
-        shape = RoundedCornerShape(9.dp)
+private fun MobileAnimatedAuthTabs(
+    mode: String,
+    onSelectMode: (String) -> Unit
+) {
+    val isLogin = mode == "login"
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(46.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(4.dp)
     ) {
-        Box(modifier = Modifier.padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
-            Text(
-                text = text,
-                color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                fontSize = 13.sp
+        val pillWidth = (maxWidth - 4.dp) / 2
+        val pillOffset by animateDpAsState(
+            targetValue = if (isLogin) pillWidth + 4.dp else 0.dp,
+            animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+            label = "MobileAuthTabPillOffset"
+        )
+
+        Box(
+            modifier = Modifier
+                .offset(x = pillOffset)
+                .width(pillWidth)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(9.dp))
+                .background(MaterialTheme.colorScheme.primary)
+        )
+
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            listOf("register" to "Регистрация", "login" to "Вход").forEach { (tabMode, label) ->
+                val active = mode == tabMode
+                val textColor by animateColorAsState(
+                    targetValue = if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    animationSpec = tween(durationMillis = 240),
+                    label = "MobileAuthTabTextColor"
+                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(9.dp))
+                        .clickable { onSelectMode(tabMode) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = label,
+                        color = textColor,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun MobileAnimatedEyeSlashIcon(
+    visible: Boolean,
+    onClick: () -> Unit
+) {
+    val openProgress by animateFloatAsState(
+        targetValue = if (visible) 1f else 0.72f,
+        animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
+        label = "MobileEyeOpen"
+    )
+    val slashProgress by animateFloatAsState(
+        targetValue = if (visible) 0f else 1f,
+        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
+        label = "MobileEyeSlash"
+    )
+    val iconScale by animateFloatAsState(
+        targetValue = if (visible) 1.07f else 1f,
+        animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+        label = "MobileEyeScale"
+    )
+    val tintColor by animateColorAsState(
+        targetValue = if (visible) Color(0xFFFB7185) else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = tween(durationMillis = 240),
+        label = "MobileEyeTint"
+    )
+
+    Box(
+        modifier = Modifier
+            .padding(end = 6.dp)
+            .size(34.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(
+            modifier = Modifier
+                .size(20.dp)
+                .scale(iconScale)
+        ) {
+            val w = size.width
+            val h = size.height
+            val strokePx = w * 0.095f
+            val cy = h * 0.5f
+            val archHeight = h * 0.34f * openProgress
+
+            val eyePath = Path().apply {
+                moveTo(w * 0.08f, cy)
+                cubicTo(
+                    w * 0.25f, cy - archHeight,
+                    w * 0.75f, cy - archHeight,
+                    w * 0.92f, cy
+                )
+                cubicTo(
+                    w * 0.75f, cy + archHeight,
+                    w * 0.25f, cy + archHeight,
+                    w * 0.08f, cy
+                )
+                close()
+            }
+
+            drawPath(
+                path = eyePath,
+                color = tintColor,
+                style = Stroke(width = strokePx, cap = StrokeCap.Round, join = StrokeJoin.Round)
             )
+
+            val pupilRadius = w * (0.095f + 0.035f * openProgress)
+            drawCircle(
+                color = tintColor,
+                radius = pupilRadius,
+                center = Offset(w * 0.5f, cy),
+                style = Stroke(width = strokePx)
+            )
+
+            if (slashProgress > 0.01f) {
+                val startX = w * 0.15f
+                val startY = h * 0.15f
+                val endX = startX + (w * 0.85f - startX) * slashProgress
+                val endY = startY + (h * 0.85f - startY) * slashProgress
+                drawLine(
+                    color = tintColor,
+                    start = Offset(startX, startY),
+                    end = Offset(endX, endY),
+                    strokeWidth = strokePx,
+                    cap = StrokeCap.Round
+                )
+            }
         }
     }
 }

@@ -58,8 +58,8 @@ android {
         applicationId = "ai.iskra.mobile"
         minSdk = 24
         targetSdk = 34
-        versionCode = 9
-        versionName = "0.8.1"
+        versionCode = 10
+        versionName = "0.8.1.1"
     }
 
     packaging {

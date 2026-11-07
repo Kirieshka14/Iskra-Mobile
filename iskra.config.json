@@ -1,6 +1,6 @@
 {
   "clientName": "Iskra Mobile Client",
-  "clientVersion": "0.8.1",
+  "clientVersion": "0.8.1.1",
   "targetPlatform": "android",
   "apiUrl": "https://bacand-iskra.onrender.com",
   "clientKey": "",
